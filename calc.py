@@ -1,6 +1,9 @@
 #!/usr/bin/python
 '''
-A command-line calculator over streams of numbers.  For example:
+A command-line calculator over streams of numbers.
+Requires numpy.
+
+  For example:
 
 # create a file with 100 random numbers, 1 per line
 $ jot -r 100 > /tmp/random
