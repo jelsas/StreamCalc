@@ -188,8 +188,8 @@ c.register_command('log', function=s_log, formatter=list_formatter,
 c.register_command('print', function=None, formatter=list_formatter,
                    help='Just print the (cleaned) input')
 c.register_command('help', function=None, help="Print this message")
-c.register_command('rstat', function=s_mean_var,
-                   help='Computes mean & variance with lower memory usage')
+c.register_command('mean_var', function=s_mean_var,
+                   help='Computes mean & variance with one pass')
 
 
 if __name__ == "__main__":
