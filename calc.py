@@ -24,18 +24,18 @@ $ cat /tmp/random | calc.py median
 $ cat /tmp/random | calc.py exp | calc.py sum
 8.22200074586e+43
 
-# print a histogram of the data
-$ cat /tmp/random | calc.py hist
-[1.000,10.900): ############
-[10.900,20.800): ##############
-[20.800,30.700): ##########
-[30.700,40.600): #######
-[40.600,50.500): #######
-[50.500,60.400): ##############
-[60.400,70.300): ######
-[70.300,80.200): ########
-[80.200,90.100): ##########
-[90.100,100.000]: ############
+# print a histogram of random data
+$ jot -r 100 | calc.py hist
+[ 3.00,12.30): ############
+[12.30,21.60): ########
+[21.60,30.90): #######
+[30.90,40.20): #########
+[40.20,49.50): ###############
+[49.50,58.80): #########
+[58.80,68.10): #########
+[68.10,77.40): #######
+[77.40,86.70): ###############
+[86.70,96.00]: #########
 
 '''
 import numpy as n
@@ -43,13 +43,21 @@ import numpy as n
 def list_formatter(l):
   return '\n'.join( str(x) for x in l )
 
-def hist_formatter(x):
+def hist_formatter(x, tick_char = '#', max_width = 80):
   '''prints a histogram'''
   (vals, bins) = x
-  s = '\n'.join('[%0.3f,%0.3f): %s' % (bins[i], bins[i+1], '#'*vals[i]) for i \
-                in xrange(len(vals)-1))
-  s = s + '\n[%0.3f,%0.3f]: %s' % (bins[len(vals)-1], bins[len(vals)],
-                                '#'*vals[-1])
+  s_bins = ['%0.2f' % b for b in bins]
+  max_bin_len = max(len(x) for x in s_bins)
+  s_bins = [x.rjust(max_bin_len) for x in s_bins]
+  max_val = max(vals)
+  if max_val + max_bin_len + 5 > max_width:
+    max_available_width = max_width - 5 - max_bin_len
+    vals = [ max_available_width * v // max_val for v in vals]
+
+  s = '\n'.join('[%s,%s): %s' % (s_bins[i], s_bins[i+1], tick_char*vals[i]) \
+                for i in xrange(len(vals)-1))
+  s = s + '\n[%s,%s]: %s' % (s_bins[len(vals)-1], s_bins[len(vals)],
+                                tick_char*vals[-1])
   return s
 
 class Command(object):
