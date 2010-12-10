@@ -37,6 +37,19 @@ $ jot -r 100 | calc.py hist
 [77.40,86.70): ###############
 [86.70,96.00]: #########
 
+# same thing, but logarithmic histogram bins
+$ jot -r 100 | pc log | pc hist
+[0.00,0.46): ###
+[0.46,0.92): ##
+[0.92,1.38):
+[1.38,1.84): ###
+[1.84,2.30): ###
+[2.30,2.76): #####
+[2.76,3.22): ############
+[3.22,3.68): ###########
+[3.68,4.14): #############################
+[4.14,4.60]: ################################
+
 '''
 import numpy as n
 
@@ -50,8 +63,8 @@ def hist_formatter(x, tick_char = '#', max_width = 80):
   max_bin_len = max(len(x) for x in s_bins)
   s_bins = [x.rjust(max_bin_len) for x in s_bins]
   max_val = max(vals)
-  if max_val + max_bin_len + 5 > max_width:
-    max_available_width = max_width - 5 - max_bin_len
+  if max_val + 5 + (max_bin_len*2) > max_width:
+    max_available_width = max_width - 5 - (max_bin_len*2)
     vals = [ max_available_width * v // max_val for v in vals]
 
   s = '\n'.join('[%s,%s): %s' % (s_bins[i], s_bins[i+1], tick_char*vals[i]) \
@@ -122,6 +135,8 @@ c.register_command('cumprod', function=n.cumprod, formatter=list_formatter,
                    help='Cumulative product')
 c.register_command('exp', function=n.exp, formatter=list_formatter,
                    help='Exponentiate every element in the list')
+c.register_command('log', function=n.log, formatter=list_formatter,
+                   help='Take the log of every element in the list')
 c.register_command('print', function=lambda x: x, formatter=list_formatter,
                   help='Just print the (cleaned) input')
 c.register_command('help', function=None, help="Print this message")
