@@ -177,7 +177,7 @@ c.register_command('mean', function=s_mean, help='Mean')
 c.register_command('median', function=l(n.median), help='Median')
 c.register_command('var', function=s_var, help='Variance')
 c.register_command('std', function=s_std, help='Standard Deviation')
-c.register_command('cumsum', function=l(n.cumsum), formatter=list_formatter,
+c.register_command('cumsum', function=s_cumsum, formatter=list_formatter,
                    help='Cumulative sum')
 c.register_command('cumprod', function=s_cumprod, formatter=list_formatter,
                    help='Cumulative product')
