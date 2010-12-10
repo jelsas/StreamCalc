@@ -130,7 +130,7 @@ c.register_command('help', function=None, help="Print this message")
 if __name__ == "__main__":
   import fileinput, sys
   def help_quit(i, e = None):
-    help = '''Usage: pc [command] [files or -]
+    help = '''Usage: calc.py [command] [files or -]
 Reads a list of numbers from the files or standard input if files are missing
 and performs the calculation specified by the command.
 Available Commands:
