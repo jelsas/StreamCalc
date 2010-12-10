@@ -38,7 +38,7 @@ $ jot -r 100 | calc.py hist
 [86.70,96.00]: #########
 
 # same thing, but logarithmic histogram bins
-$ jot -r 100 | pc log | pc hist
+$ jot -r 100 | calc.py log | calc.py hist
 [0.00,0.46): ###
 [0.46,0.92): ##
 [0.92,1.38):
