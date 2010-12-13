@@ -56,9 +56,6 @@ import numpy as n
 import math as m
 from itertools import imap
 
-def list_formatter(l):
-  return '\n'.join( str(x) for x in l )
-
 def hist_formatter(x, tick_char = '#', max_width = 80):
   '''prints a histogram'''
   (vals, bins) = x
@@ -74,7 +71,7 @@ def hist_formatter(x, tick_char = '#', max_width = 80):
                 for i in xrange(len(vals)-1))
   s = s + '\n[%s,%s]: %s' % (s_bins[len(vals)-1], s_bins[len(vals)],
                                 tick_char*vals[-1])
-  return s
+  yield s
 
 def s_mean_var(data):
   '''calculates the mean & variance with minimal intermediate data structures.
@@ -92,17 +89,17 @@ def s_mean_var(data):
       m_oldM, m_oldS = m_newM, m_newS
   mean = m_newM if m_n > 0 else 0.0
   var = m_newS / (m_n - 1) if m_n > 1 else 0.0
-  return (mean, var)
+  yield (mean, var)
 
 def s_mean(data): return s_mean_var(data)[0]
 def s_var(data): return s_mean_var(data)[1]
 def s_std(data): return m.sqrt(s_var(data))
 
 def s_cumsum(data):
-  sum = 0
+  s = 0
   for x in data:
-    sum += x
-    yield x
+    s += x
+    yield s
 
 def s_cumprod(data):
   prod = 1.0
@@ -110,13 +107,16 @@ def s_cumprod(data):
     prod *= x
     yield prod
 
-s_exp = lambda data: imap(m.exp, data)
-s_log = lambda data: imap(m.log, data)
-
 def s_prod(data):
   prod = 1.0
   for x in data: prod *= x
-  return prod
+  yield prod
+
+s_exp = lambda data: imap(m.exp, data)
+s_log = lambda data: imap(m.log, data)
+def s_sum(data): yield sum(data)
+def s_max(data): yield max(data)
+def s_min(data): yield min(data)
 
 def l(func):
   '''Simple function wrapper to convert the input into a list.  Used for
@@ -126,8 +126,11 @@ def l(func):
 class Command(object):
   '''An individual command, deals with execution & formatting'''
 
-  def __init__(self, function = None, formatter = str, help = None):
-    self.formatter = formatter
+  def __init__(self, function = None, formatter = None, help = None):
+    if formatter:
+      self.formatter = formatter
+    else:
+      self.formatter = lambda x: (str(i) for i in x)
     self.function = function
     self.help = help
 
@@ -143,7 +146,7 @@ class CommandProcessor(object):
     self._commands = {}
 
   def register_command(self, name, command = None, function = None,
-                       formatter = str, help = None):
+                       formatter = None, help = None):
     if command:
       self._commands[name] = command
     else:
@@ -159,16 +162,16 @@ class CommandProcessor(object):
 
   def process(self, command, data):
     try:
-      c =self._commands[command]
+      c = self._commands[command]
     except KeyError, e:
       raise ValueError('Command not found: %s' % command)
     return c.process(data)
 
 c = CommandProcessor()
-c.register_command('sum', function=sum, help='Add a list of numbers')
-c.register_command('add', function=sum, help='see sum')
-c.register_command('max', function=max, help='Max')
-c.register_command('min', function=min, help='Min')
+c.register_command('sum', function=s_sum, help='Add a list of numbers')
+c.register_command('add', function=s_sum, help='see sum')
+c.register_command('max', function=s_max, help='Max')
+c.register_command('min', function=s_min, help='Min')
 c.register_command('prod', function=s_prod,
                    help='Multiply a list of numbers')
 c.register_command('hist', function=lambda x: n.histogram(list(x), new=True),
@@ -177,15 +180,13 @@ c.register_command('mean', function=s_mean, help='Mean')
 c.register_command('median', function=l(n.median), help='Median')
 c.register_command('var', function=s_var, help='Variance')
 c.register_command('std', function=s_std, help='Standard Deviation')
-c.register_command('cumsum', function=s_cumsum, formatter=list_formatter,
-                   help='Cumulative sum')
-c.register_command('cumprod', function=s_cumprod, formatter=list_formatter,
-                   help='Cumulative product')
-c.register_command('exp', function=s_exp, formatter=list_formatter,
+c.register_command('cumsum', function=s_cumsum,  help='Cumulative sum')
+c.register_command('cumprod', function=s_cumprod, help='Cumulative product')
+c.register_command('exp', function=s_exp,
                    help='Exponentiate every element in the list')
-c.register_command('log', function=s_log, formatter=list_formatter,
+c.register_command('log', function=s_log,
                    help='Take the log of every element in the list')
-c.register_command('print', function=None, formatter=list_formatter,
+c.register_command('print', function=None,
                    help='Just print the (cleaned) input')
 c.register_command('help', function=None, help="Print this message")
 c.register_command('mean_var', function=s_mean_var,
@@ -213,7 +214,7 @@ Available Commands:
   l = (float(x.strip()) for x in fileinput.input(sys.argv[2:]) \
           if len(x.strip()) > 0 and x[0] != '#')
   try:
-    print c.process(command, l)
+    for x in c.process(command, l): print x
   except ValueError, e:
     help_quit(1, e)
 
