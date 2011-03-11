@@ -1,7 +1,7 @@
 #!/usr/bin/python
 '''
 A command-line calculator over streams of numbers.
-Requires numpy.
+Requires numpy for 'hist' and 'median'.
 
   For example:
 
@@ -52,7 +52,6 @@ $ jot -r 100 | calc.py log | calc.py hist
 
 '''
 from __future__ import division
-import numpy as n
 import math as m
 from itertools import imap
 
@@ -71,7 +70,7 @@ def hist_formatter(x, tick_char = '#', max_width = 80):
                 for i in xrange(len(vals)-1))
   s = s + '\n[%s,%s]: %s' % (s_bins[len(vals)-1], s_bins[len(vals)],
                                 tick_char*vals[-1])
-  yield s
+  return s
 
 def s_mean_var(data):
   '''calculates the mean & variance with minimal intermediate data structures.
@@ -91,9 +90,9 @@ def s_mean_var(data):
   var = m_newS / (m_n - 1) if m_n > 1 else 0.0
   yield (mean, var)
 
-def s_mean(data): return s_mean_var(data)[0]
-def s_var(data): return s_mean_var(data)[1]
-def s_std(data): return m.sqrt(s_var(data))
+def s_mean(data): yield s_mean_var(data).next()[0]
+def s_var(data): yield s_mean_var(data).next()[1]
+def s_std(data): yield m.sqrt(s_var(data))
 
 def s_cumsum(data):
   s = 0
@@ -118,19 +117,25 @@ def s_sum(data): yield sum(data)
 def s_max(data): yield max(data)
 def s_min(data): yield min(data)
 
-def l(func):
-  '''Simple function wrapper to convert the input into a list.  Used for
-  making the numpy functions below behave correctly with a generator input.'''
-  return lambda data: func(list(data))
+def hist(data):
+  try:
+    import numpy as n
+  except ImportError:
+    raise ValueError('numpy needed to run \'hist\'')
+  yield n.histogram(list(data), new=True)
+
+def median(data):
+  try:
+    import numpy as n
+  except ImportError:
+    raise ValueError('numpy needed to run \'median\'')
+  yield n.median(list(data))
 
 class Command(object):
   '''An individual command, deals with execution & formatting'''
 
-  def __init__(self, function = None, formatter = None, help = None):
-    if formatter:
-      self.formatter = formatter
-    else:
-      self.formatter = lambda x: (str(i) for i in x)
+  def __init__(self, function = None, formatter = str, help = None):
+    self.formatter = formatter
     self.function = function
     self.help = help
 
@@ -138,7 +143,7 @@ class Command(object):
     return self.function(data) if self.function else data
 
   def process(self, data):
-    return self.formatter(self(data))
+    return imap(self.formatter, self(data))
 
 class CommandProcessor(object):
   '''Handles processing commands'''
@@ -146,7 +151,7 @@ class CommandProcessor(object):
     self._commands = {}
 
   def register_command(self, name, command = None, function = None,
-                       formatter = None, help = None):
+                       formatter = str, help = None):
     if command:
       self._commands[name] = command
     else:
@@ -174,10 +179,10 @@ c.register_command('max', function=s_max, help='Max')
 c.register_command('min', function=s_min, help='Min')
 c.register_command('prod', function=s_prod,
                    help='Multiply a list of numbers')
-c.register_command('hist', function=lambda x: n.histogram(list(x), new=True),
+c.register_command('hist', function=hist,
                    formatter=hist_formatter, help='Produce a histogram')
 c.register_command('mean', function=s_mean, help='Mean')
-c.register_command('median', function=l(n.median), help='Median')
+c.register_command('median', function=median, help='Median')
 c.register_command('var', function=s_var, help='Variance')
 c.register_command('std', function=s_std, help='Standard Deviation')
 c.register_command('cumsum', function=s_cumsum,  help='Cumulative sum')
