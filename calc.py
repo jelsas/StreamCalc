@@ -92,7 +92,7 @@ def s_mean_var(data):
 
 def s_mean(data): yield s_mean_var(data).next()[0]
 def s_var(data): yield s_mean_var(data).next()[1]
-def s_std(data): yield m.sqrt(s_var(data))
+def s_std(data): yield m.sqrt(s_var(data).next())
 
 def s_cumsum(data):
   s = 0
@@ -113,6 +113,7 @@ def s_prod(data):
 
 s_exp = lambda data: imap(m.exp, data)
 s_log = lambda data: imap(m.log, data)
+s_sqrt = lambda data: imap(m.sqrt, data)
 def s_sum(data): yield sum(data)
 def s_max(data): yield max(data)
 def s_min(data): yield min(data)
@@ -175,6 +176,7 @@ class CommandProcessor(object):
 c = CommandProcessor()
 c.register_command('sum', function=s_sum, help='Add a list of numbers')
 c.register_command('add', function=s_sum, help='see sum')
+c.register_command('sqrt', function=s_sqrt, help='Square Root')
 c.register_command('max', function=s_max, help='Max')
 c.register_command('min', function=s_min, help='Min')
 c.register_command('prod', function=s_prod,
@@ -199,7 +201,7 @@ c.register_command('mean_var', function=s_mean_var,
 
 
 if __name__ == "__main__":
-  import fileinput, sys
+  import sys, gzip, bz2
   def help_quit(i, e = None):
     help = '''Usage: calc.py [command] [files or -]
 Reads a list of numbers from the files or standard input if files are missing
@@ -210,13 +212,36 @@ Available Commands:
     if e: print >> sys.stderr, e
     sys.exit(i)
 
+  def _read_stdin():
+    while True:
+      try:
+        yield raw_input()
+      except EOFError:
+        break
+
+  def _read_file(*filenames):
+    extensions = {
+      'gz': gzip.open,
+      'bz2': lambda x: bz2.BZ2File(x, mode='rU'),
+      }
+    for f in filenames:
+      ext = f.rsplit('.', 1)[-1]
+      fin = extensions.get(ext, open)(f)
+      for line in fin: yield line
+
+  def read(*input):
+    if len(input) > 0:
+      return _read_file(*input)
+    else:
+      return _read_stdin()
+
   if len(sys.argv) < 2: help_quit(1)
 
   command = sys.argv[1]
 
   if command == 'help': help_quit(0)
 
-  l = (float(x.strip()) for x in fileinput.input(sys.argv[2:]) \
+  l = (float(x.strip()) for x in read(*sys.argv[2:]) \
           if len(x.strip()) > 0 and x[0] != '#')
   try:
     for x in c.process(command, l): print x
